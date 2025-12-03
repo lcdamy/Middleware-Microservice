@@ -1,0 +1,45 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+
+  # ===========================================================
+  # SCRAPE DOCKER CONTAINER LOGS
+  # ===========================================================
+  - job_name: docker
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: docker
+          __path__: /var/lib/docker/containers/*/*-json.log
+          source: docker
+
+  # ===========================================================
+  # SCRAPE ENROLLMENT-SERVICE LOGS
+  # ===========================================================
+  - job_name: enrollment-service
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: enrollment-service
+          app: enrollment-service
+          __path__: /var/log/microservices/enrollment-service.log
+
+    pipeline_stages:
+      - regex:
+          expression: "^(?P<ts>[^ ]+) (?P<level>[A-Z]+) (?P<msg>.*)"
+      - timestamp:
+          source: ts
+          format: "2006-01-02T15:04:05.000Z07:00"
+      - labels:
+          level:
+      - output:
+          source: msg
+

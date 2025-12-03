@@ -1,0 +1,214 @@
+services:
+  postgres:
+    container_name: ms_pg_sql
+    image: postgres
+    environment:
+      POSTGRES_USER: lcdamy
+      POSTGRES_PASSWORD: Zudanga@1
+      PGDATA: /var/lib/postgresql/data
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - 5433:5432
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  pgadmin:
+    container_name: ms_admin
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin@pgadmin.org}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin:/var/lib/admin
+    ports:
+      - 5050:80
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  broker:
+    image: confluentinc/cp-kafka:7.4.1
+    container_name: broker
+    ports:
+      - "9092:9092"   # external (host) listener
+    environment:
+      # --- KRaft single node ---
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_NODE_ID: 1
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@broker:9093"
+
+      # --- LISTENERS ---
+      # INTERNAL: for Docker network (other containers)
+      # EXTERNAL: for your host machine
+      # CONTROLLER: for KRaft
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://broker:29092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:SASL_PLAINTEXT,EXTERNAL:SASL_PLAINTEXT,CONTROLLER:PLAINTEXT
+
+      # KRaft controller listener
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+      # Inter-broker communication via INTERNAL listener
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+
+      # --- SASL/PLAIN auth with JAAS file ---
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
+      KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf"
+
+      # --- KRaft cluster id & logs ---
+      CLUSTER_ID: "Zi1YQpJbQbq5eN1z5SxZ1A"
+      KAFKA_CLUSTER_ID: "Zi1YQpJbQbq5eN1z5SxZ1A"
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+
+      # --- single-broker defaults ---
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+
+    volumes:
+      - ./kafka/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf:ro
+      - ./kafka/client.properties:/etc/kafka/client.properties:ro
+      - ./kafka-data:/var/lib/kafka/data
+
+    restart: unless-stopped
+    networks:
+      - microservices-net
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8086:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: QT-Middle
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: broker:29092
+
+      # auth config for SASL_PLAINTEXT + PLAIN
+      KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      KAFKA_CLUSTERS_0_PROPERTIES_SASL_MECHANISM: PLAIN
+      KAFKA_CLUSTERS_0_PROPERTIES_SASL_JAAS_CONFIG: >
+        org.apache.kafka.common.security.plain.PlainLoginModule required
+        username="app"
+        password="apppassword";
+      DYNAMIC_CONFIG_ENABLED: "true"
+    depends_on:
+      - broker
+    networks:
+      - microservices-net
+
+  keycloak:
+    container_name: ms_keycloak
+    image: quay.io/keycloak/keycloak:24.0.2
+    ports:
+      - "9090:8080"
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    networks:
+      - microservices-net
+    command:
+      - "start-dev"
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    ports:
+      - "9091:9090"
+    networks:
+      - microservices-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+    networks:
+      - microservices-net
+
+  loki:
+    image: grafana/loki:2.9.8
+    container_name: loki
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    volumes:
+      - ./monitoring/loki/local-config.yaml:/etc/loki/local-config.yaml
+      - ./monitoring/loki/data:/loki
+    ports:
+      - "3100:3100"
+    networks:
+      - microservices-net
+
+  promtail:
+    image: grafana/promtail:2.9.8
+    container_name: promtail
+    volumes:
+      - /var/log:/var/log
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./monitoring/promtail/promtail.yml:/etc/promtail/promtail.yml
+    command: ["--config.file=/etc/promtail/promtail.yml"]
+    networks:
+      - microservices-net
+    depends_on:
+      - loki
+
+  tempo:
+    image: grafana/tempo:latest
+    container_name: tempo
+    command: ["-config.file=/etc/tempo/config.yml"]
+    volumes:
+      - ./monitoring/tempo/config.yml:/etc/tempo/config.yml
+    ports:
+      - "3200:3200"   # Tempo HTTP / status
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    networks:
+      - microservices-net
+
+  wso2apim:
+    image: wso2/wso2am:4.4.0
+    container_name: wso2apim
+    ports:
+      - "9443:9443"   # Management UIs (HTTPS)
+      - "8280:8280"   # HTTP Gateway
+      - "8243:8243"   # HTTPS Gateway
+    environment:
+      - JAVA_OPTS=-Duser.timezone=Africa/Kigali
+    restart: unless-stopped
+    networks:
+      - microservices-net
+
+  enrollment-service:
+    image: lcdamy/enrollment-service:1.0.0
+    container_name: enrollment-service
+    depends_on:
+      - broker
+      - postgres
+    ports:
+      - "8001:8001"
+    networks:
+      - microservices-net
+
+networks:
+  microservices-net:
+    driver: bridge
+
+volumes:
+  postgres:
+  pgadmin:
+  kafka_data:
