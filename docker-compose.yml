@@ -30,6 +30,38 @@ services:
       - microservices-net
     restart: unless-stopped
 
+  mongodb:
+    container_name: ms_mongo_db
+    image: mongo
+    ports:
+      - 27017:27017
+    volumes:
+      - mongo:/data
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: lcdamy
+      MONGO_INITDB_ROOT_PASSWORD: lcdamy
+    restart: unless-stopped
+    networks:
+      - microservices-net
+
+  mongo-express:
+    container_name: ms_mongo_express
+    image: mongo-express:latest
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: adminpass
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"   # <-- REQUIRED
+      ME_CONFIG_MONGODB_ADMINUSERNAME: lcdamy
+      ME_CONFIG_MONGODB_ADMINPASSWORD: lcdamy
+      ME_CONFIG_MONGODB_SERVER: mongodb
+    networks:
+      - microservices-net
+
   broker:
     image: confluentinc/cp-kafka:7.4.1
     container_name: broker
@@ -193,16 +225,16 @@ services:
     networks:
       - microservices-net
 
-  enrollment-service:
-    image: lcdamy/enrollment-service:1.0.0
-    container_name: enrollment-service
-    depends_on:
-      - broker
-      - postgres
-    ports:
-      - "8001:8001"
-    networks:
-      - microservices-net
+#  enrollment-service:
+#    image: lcdamy/enrollment-service:1.0.0
+#    container_name: enrollment-service
+#    depends_on:
+#      - broker
+#      - postgres
+#    ports:
+#      - "8001:8001"
+#    networks:
+#      - microservices-net
 
 networks:
   microservices-net:
@@ -212,3 +244,4 @@ volumes:
   postgres:
   pgadmin:
   kafka_data:
+  mongo:

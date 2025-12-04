@@ -1,0 +1,37 @@
+spring:
+  output:
+    ansi:
+      enabled: always
+  data:
+    mongodb:
+      username: lcdamy
+      password: lcdamy
+      host: localhost
+      port: 27017
+      database: enrollment
+      authentication-database: admin
+  kafka:
+    # From your host, use the EXTERNAL listener on localhost:9092
+    bootstrap-servers: localhost:9092
+    properties:
+      security.protocol: SASL_PLAINTEXT
+      sasl.mechanism: PLAIN
+      sasl.jaas.config: >
+        org.apache.kafka.common.security.plain.PlainLoginModule required
+        username="app"
+        password="apppassword";
+    consumer:
+      group-id: enrollment-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: "*"
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: java.util.LinkedHashMap
+  application:
+    name: sftp-service
+server:
+  port: 8002
