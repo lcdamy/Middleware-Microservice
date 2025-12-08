@@ -1,7 +1,7 @@
 0
 51
 __consumer_offsets 13 0
-enrollment-packet 0 7
+enrollment-packet 0 13
 __consumer_offsets 46 0
 __consumer_offsets 9 0
 __consumer_offsets 42 0
@@ -38,7 +38,7 @@ __consumer_offsets 28 0
 __consumer_offsets 7 0
 __consumer_offsets 40 0
 __consumer_offsets 3 0
-__consumer_offsets 36 18
+__consumer_offsets 36 50
 __consumer_offsets 47 0
 __consumer_offsets 14 0
 __consumer_offsets 43 0

@@ -1,0 +1,22 @@
+spring:
+  output:
+    ansi:
+      enabled: always
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          routes:
+            - id: enrollment-service
+              uri: http://enrollment-service:8003
+              predicates:
+                - Path=/enrollment/**        # incoming path on gateway
+              filters:
+                - StripPrefix=1              # /enrollment/api/v1/... -> /api/v1/...
+
+            - id: sftp-service
+              uri: http://localhost:8002
+              predicates:
+                - Path=/sftp/**              # incoming path on gateway
+              filters:
+                - StripPrefix=1

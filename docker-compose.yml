@@ -225,16 +225,32 @@ services:
     networks:
       - microservices-net
 
-#  enrollment-service:
-#    image: lcdamy/enrollment-service:1.0.0
-#    container_name: enrollment-service
-#    depends_on:
-#      - broker
-#      - postgres
-#    ports:
-#      - "8001:8001"
-#    networks:
-#      - microservices-net
+  enrollment-service:
+    image: lcdamy/enrollment-service:1.0.1
+    container_name: enrollment-service
+    depends_on:
+      - broker
+      - postgres
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    ports:
+      - "8003:8001"
+    networks:
+      - microservices-net
+
+  sftp-service:
+    image: lcdamy/sftp-service:1.0.1
+    container_name: sftp-service
+    depends_on:
+      - broker
+      - postgres
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    ports:
+      - "8004:8002"
+    networks:
+      - microservices-net
+
 
 networks:
   microservices-net:

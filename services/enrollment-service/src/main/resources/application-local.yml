@@ -24,8 +24,4 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-  application:
-    name: enrollment-service
-server:
-  port: 8001
 

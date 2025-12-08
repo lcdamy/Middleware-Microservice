@@ -17,7 +17,7 @@ public class PacketConsumer {
 
     private final EnrollmentService enrollmentService;
 
-@KafkaListener(topics = "enrollment-packet", groupId = "enrollment-group")
+    @KafkaListener(topics = "enrollment-packet", groupId = "enrollment-group")
     public void consumePacket(Map<String,Object> payload) throws MessagingException {
     log.info("Consuming the message from enrollment-packet:: {}", payload);
        String enrollmentReference = (String) payload.get("enrollmentReference");

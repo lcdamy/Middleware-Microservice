@@ -1,31 +1,7 @@
 spring:
-  output:
-    ansi:
-      enabled: always
-  datasource:
-    url: jdbc:postgresql://localhost:5433/enrollment
-    username: lcdamy
-    password: Zudanga@1
-    driver-class-name: org.postgresql.Driver
-  jpa:
-    hibernate:
-      ddl-auto: create
-    database: postgresql
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
-  kafka:
-    bootstrap-servers: localhost:9092
-    properties:
-        security.protocol: SASL_PLAINTEXT
-        sasl.mechanism: PLAIN
-        sasl.jaas.config: >
-          org.apache.kafka.common.security.plain.PlainLoginModule required
-          username="app"
-          password="apppassword";
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
   application:
     name: enrollment-service
+  profiles:
+    active: local
 server:
   port: 8001
-

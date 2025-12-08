@@ -12,7 +12,7 @@ spring:
       authentication-database: admin
   kafka:
     # From your host, use the EXTERNAL listener on localhost:9092
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: localhost:29092
     properties:
       security.protocol: SASL_PLAINTEXT
       sasl.mechanism: PLAIN
@@ -31,7 +31,3 @@ spring:
         spring.json.trusted.packages: "*"
         spring.json.use.type.headers: false
         spring.json.value.default.type: java.util.LinkedHashMap
-  application:
-    name: sftp-service
-server:
-  port: 8002
